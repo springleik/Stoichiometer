@@ -1,0 +1,504 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN"><html><head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<script language="JavaScript" type="text/javascript">
+<!--
+
+//////////////////////////////////////////////////////////////////
+// Stoichiometer JavaScript calculator, to obtain molar ratios
+// of precursors required to obtain desired result.
+// M. Williamsen, UW-Milwaukee, 9/30/06
+// Copyright 2006, All Rights Reserved.
+//////////////////////////////////////////////////////////////////
+
+// global arrays
+var precs;					// list of precursors
+var rslts;					// list of results
+var elemList = new Array();		// data base of atomic weights
+
+// constructor for Element object
+// note that only count changes after initialization
+function Element(numb, name, weight, count)
+{
+	this.numb = numb;		// atomic number
+	this.name = name;		// short name
+	this.weight = weight;	// atomic weight
+	this.count = count;		// atoms per molecule
+}
+
+// default constructor for compound object
+// note that only ratio changes after initialization
+function Compound()
+{
+	this.elems = new Array();	// list of element objects
+	this.ratio = 1;				// number of moles needed
+	this.weight = 0;			// molecular weight
+}
+
+// linear search, returns new element object
+// given a short name, not case sensitive
+function elemSearch(name)
+{
+	// scan element list in order for a match
+	for (var i = 0; i < elemList.length; i++)
+	{
+		var e = elemList[i];
+		if (name.toUpperCase() == e.name.toUpperCase())
+		{
+			return new Element(e.numb, e.name, e.weight, 1);
+		}
+	}
+	
+	// reaches here if short name not found
+	alert('Couldn\'t parse: ' + name);
+	return new Element(0, '??', 0, 1);
+}
+
+// initialize array of element objects
+// return number of elements in list
+function initElemList()
+{
+	var index = 0;
+	elemList[index++] = new Element(1,'H',1.00794,1);
+	elemList[index++] = new Element(2,'He',4.0026,1);
+	elemList[index++] = new Element(3,'Li',6.941,1);
+	elemList[index++] = new Element(4,'Be',9.012182,1);
+	elemList[index++] = new Element(5,'B',10.811,1);
+	elemList[index++] = new Element(6,'C',12.0107,1);
+	elemList[index++] = new Element(7,'N',14.0067,1);
+	elemList[index++] = new Element(8,'O',15.9994,1);
+	elemList[index++] = new Element(9,'F',18.9984,1);
+	elemList[index++] = new Element(10,'Ne',20.1797,1);
+	elemList[index++] = new Element(11,'Na',22.9897,1);
+	elemList[index++] = new Element(12,'Mg',24.305,1);
+	elemList[index++] = new Element(13,'Al',26.9815,1);
+	elemList[index++] = new Element(14,'Si',28.0855,1);
+	elemList[index++] = new Element(15,'P',30.9737,1);
+	elemList[index++] = new Element(16,'S',32.065,1);
+	elemList[index++] = new Element(17,'Cl',35.453,1);
+	elemList[index++] = new Element(18,'Ar',39.948,1);
+	elemList[index++] = new Element(19,'K',39.0983,1);
+	elemList[index++] = new Element(20,'Ca',40.078,1);
+	elemList[index++] = new Element(21,'Sc',44.9559,1);
+	elemList[index++] = new Element(22,'Ti',47.867,1);
+	elemList[index++] = new Element(23,'V',50.9415,1);
+	elemList[index++] = new Element(24,'Cr',51.9961,1);
+	elemList[index++] = new Element(25,'Mn',54.938,1);
+	elemList[index++] = new Element(26,'Fe',55.854,1);
+	elemList[index++] = new Element(27,'Co',58.9332,1);
+	elemList[index++] = new Element(28,'Ni',58.6934,1);
+	elemList[index++] = new Element(29,'Cu',63.546,1);
+	elemList[index++] = new Element(30,'Zn',65.39,1);
+	elemList[index++] = new Element(31,'Ga',69.723,1);
+	elemList[index++] = new Element(32,'Ge',72.64,1);
+	elemList[index++] = new Element(33,'As',74.9216,1);
+	elemList[index++] = new Element(34,'Se',78.96,1);
+	elemList[index++] = new Element(35,'Br',79.904,1);
+	elemList[index++] = new Element(36,'Kr',83.8,1);
+	elemList[index++] = new Element(37,'Rb',85.4678,1);
+	elemList[index++] = new Element(38,'Sr',87.62,1);
+	elemList[index++] = new Element(39,'Y',88.9058,1);
+	elemList[index++] = new Element(40,'Zr',91.224,1);
+	elemList[index++] = new Element(41,'Nb',92.9064,1);
+	elemList[index++] = new Element(42,'Mo',95.94,1);
+	elemList[index++] = new Element(43,'Tc',98.9063,1);
+	elemList[index++] = new Element(44,'Ru',101.07,1);
+	elemList[index++] = new Element(45,'Rh',102.9055,1);
+	elemList[index++] = new Element(46,'Pd',106.42,1);
+	elemList[index++] = new Element(47,'Ag',107.8682,1);
+	elemList[index++] = new Element(48,'Cd',112.411,1);
+	elemList[index++] = new Element(49,'In',114.818,1);
+	elemList[index++] = new Element(50,'Sn',118.71,1);
+	elemList[index++] = new Element(51,'Sb',121.76,1);
+	elemList[index++] = new Element(52,'Te',127.6,1);
+	elemList[index++] = new Element(53,'I',126.9044,1);
+	elemList[index++] = new Element(54,'Xe',131.293,1);
+	elemList[index++] = new Element(55,'Cs',132.9054,1);
+	elemList[index++] = new Element(56,'Ba',137.327,1);
+	elemList[index++] = new Element(57,'La',138.9055,1);
+	elemList[index++] = new Element(58,'Ce',140.116,1);
+	elemList[index++] = new Element(59,'Pr',140.9076,1);
+	elemList[index++] = new Element(60,'Nd',144.24,1);
+	elemList[index++] = new Element(61,'Pm',146.9151,1);
+	elemList[index++] = new Element(62,'Sm',150.36,1);
+	elemList[index++] = new Element(63,'Eu',151.964,1);
+	elemList[index++] = new Element(64,'Gd',157.25,1);
+	elemList[index++] = new Element(65,'Tb',158.9253,1);
+	elemList[index++] = new Element(66,'Dy',162.5,1);
+	elemList[index++] = new Element(67,'Ho',164.9303,1);
+	elemList[index++] = new Element(68,'Er',167.259,1);
+	elemList[index++] = new Element(69,'Tm',168.9342,1);
+	elemList[index++] = new Element(70,'Yb',173.04,1);
+	elemList[index++] = new Element(71,'Lu',174.967,1);
+	elemList[index++] = new Element(72,'Hf',178.49,1);
+	elemList[index++] = new Element(73,'Ta',180.9479,1);
+	elemList[index++] = new Element(74,'W',183.84,1);
+	elemList[index++] = new Element(75,'Re',186.207,1);
+	elemList[index++] = new Element(76,'Os',190.23,1);
+	elemList[index++] = new Element(77,'Ir',192.217,1);
+	elemList[index++] = new Element(78,'Pt',195.078,1);
+	elemList[index++] = new Element(79,'Au',196.9665,1);
+	elemList[index++] = new Element(80,'Hg',200.59,1);
+	elemList[index++] = new Element(81,'Tl',204.3833,1);
+	elemList[index++] = new Element(82,'Pb',207.2,1);
+	elemList[index++] = new Element(83,'Bi',208.9803,1);
+	elemList[index++] = new Element(84,'Po',208.9824,1);
+	elemList[index++] = new Element(85,'At',209.9871,1);
+	elemList[index++] = new Element(86,'Rn',222.0176,1);
+	elemList[index++] = new Element(87,'Fr',223.0197,1);
+	elemList[index++] = new Element(88,'Ra',226.0254,1);
+	elemList[index++] = new Element(89,'Ac',227.0278,1);
+	elemList[index++] = new Element(90,'Th',232.0381,1);
+	elemList[index++] = new Element(91,'Pa',231.0358,1);
+	elemList[index++] = new Element(92,'U',238.0289,1);
+	elemList[index++] = new Element(93,'Np',237.0482,1);
+	elemList[index++] = new Element(94,'Pu',244.0642,1);
+	elemList[index++] = new Element(95,'Am',243.0614,1);
+	elemList[index++] = new Element(96,'Cm',247.0703,1);
+	elemList[index++] = new Element(97,'Bk',247.0703,1);
+	elemList[index++] = new Element(98,'Cf',251.0796,1);
+	elemList[index++] = new Element(99,'Es',252.0829,1);
+	elemList[index++] = new Element(100,'Fm',257.0951,1);
+	elemList[index++] = new Element(101,'Md',258.0986,1);
+	elemList[index++] = new Element(102,'No',259.1009,1);
+	elemList[index++] = new Element(103,'Lr',262.11,1);
+	elemList[index++] = new Element(104,'Rf',261.1089,1);
+	elemList[index++] = new Element(105,'Db',262.1144,1);
+	elemList[index++] = new Element(106,'Sg',263.1186,1);
+	elemList[index++] = new Element(107,'Bh',262.1231,1);
+	elemList[index++] = new Element(108,'Hs',265.1306,1);
+	elemList[index++] = new Element(109,'Mt',266.1378,1);
+	return elemList.length;
+}
+
+// given a text string input from user, return an array
+// of arrays, containing elements organized in compounds
+function parseInput(s)
+{
+	// loop indexes
+	var i = 0;	// index over compounds
+	var j = 0;	// index over elements
+	var k = 0;	// index over characters
+	
+	// check for empty string
+	if (!s.length)
+	{
+		alert('Parsing empty string!');
+		return new Array();
+	}
+	
+	// remove redundant spaces from input
+	while (s.indexOf('  ') >= 0) {s = s.replace('  ', ' ');}
+	while (s.indexOf(', ') >= 0) {s = s.replace(', ', ',');}
+	while (s.indexOf(' ,') >= 0) {s = s.replace(' ,', ',');}
+	while (s.substring(0,1) == ' ') {s = s.replace(' ','');}
+	while (s.substring(s.length-1, s.length) == ' ') {s = s.substring(0, s.length-1);}
+	
+	// split into compounds
+	var t = s.split(',');	// array of compound strings
+	
+	// split each compound into elements
+	var u = new Array();
+	for (i = 0; i < t.length; i++)
+	{
+		u[i] = t[i].split(' ');
+	}
+	
+	// process each compound parsed
+	var r = new Array();	// tree structure to return
+	for (i = 0; i < u.length; i++)
+	{
+		// instantiate new compound object
+		r[i] = new Compound();
+		
+		// process each element parsed
+		for (j = 0; j < u[i].length; j++)
+		{
+			// find last char in each element string
+			var v = u[i][j];
+			if (!v.length){alert('No element found!');}
+			
+			// find where number starts in element text
+			var numStart = -1;
+			for (k = 0; k < v.length; k++)
+			{
+				// chech each char to see if numeric
+				if ('0123456789.'.indexOf(v.substring(k,k+1)) >= 0)
+				{
+					// numeric char found
+					numStart = k;
+					k = v.length;	// exit for loop
+				}
+			}
+			
+			// break element text into alpha and numeric parts
+			if (numStart > 0)
+			{
+				// handle case where number is given
+				r[i].elems[j] = elemSearch(v.substring(0, numStart));
+				r[i].elems[j].count = v.substring(numStart, v.length);
+			}
+			else
+			{
+				// handle case without number
+				r[i].elems[j] = elemSearch(v);
+			}
+		}
+	}
+	
+	// set the weight and name for each compound
+	for (i = 0; i < r.length; i++)
+	{
+		r[i].weight = 0.0;
+		r[i].name = '';
+		for (j = 0; j < r[i].elems.length; j++)
+		{
+			r[i].weight += r[i].elems[j].weight * r[i].elems[j].count;
+			r[i].name   += ' ' + r[i].elems[j].name;
+			if (r[i].elems[j].count != 1)
+			{
+				r[i].name += r[i].elems[j].count;
+			}
+		}
+	}
+
+	return r;
+}
+
+// calculate all results and format for output
+// this is called once each time "Calculate" button is clicked
+function computeOutput()
+{
+	// initialize loop variables
+	var i = 0;
+	var j = 0;
+	var k = 0;
+	
+	// check if data base has been populated
+	if (!elemList.length)
+	{
+		// populate data base when needed
+		initElemList();
+	}
+	
+	// check user inputs
+	var normal = 'none';
+	if (document.forms[0].normal[0].checked)
+		{normal = 'prec';}
+	else if (document.forms[0].normal[1].checked)
+		{normal = 'rslt';}
+	precs = parseInput(document.forms[0].ingredients.value);
+	rslts = parseInput(document.forms[0].result.value);
+    
+	// calculate moles of each precursor required for desired result
+	for (i = 0; i < precs.length; i++)
+	{
+		// scan 1st output compound to see how much precursor is needed
+		precs[i].ratio = 0;
+		for (j = 0; j < rslts[0].elems.length; j++)
+		if (precs[i].elems[0].numb == rslts[0].elems[j].numb)
+		{
+			// match found, check quantity
+			precs[i].ratio += rslts[0].elems[j].count / precs[i].elems[0].count;
+		}
+	}
+	
+	// find moles of additional results, due to inputs
+	for (i = 1; i < rslts.length; i++)
+	{
+		// clear result ratio
+		rslts[i].ratio = 0;
+				
+		// check previous results for overlap
+		for (j = 0; j < i; j++)
+		for (k = 0; k < rslts[j].elems.length; k++)
+		if (rslts[i].elems[0].numb == rslts[j].elems[k].numb)
+		{
+			// match found, check quantity
+			rslts[i].ratio -= rslts[j].ratio * rslts[j].elems[k].count / rslts[i].elems[0].count;
+		}
+		
+		// now check ith result against all precursors
+		for (j = 0; j < precs.length; j++)
+		
+		// scan elements of each precursor, starting with 2nd entry
+		for (k = 1; k < precs[j].elems.length; k++)
+		if (rslts[i].elems[0].numb == precs[j].elems[k].numb)
+		{
+			// match found, check quantity
+			rslts[i].ratio += precs[j].ratio * precs[j].elems[k].count / rslts[i].elems[0].count;
+		}
+	}
+	
+	// find excess elements in input
+	for (i = 0; i < elemList.length; i++)
+	{
+		// initialize counters
+		elemList[i].count = 0;
+		
+		// add up elements from precursors
+		for (j = 0; j < precs.length; j++)
+		for (k = 0; k < precs[j].elems.length; k++)
+		if (precs[j].elems[k].numb == elemList[i].numb)
+		{
+			elemList[i].count += precs[j].ratio * precs[j].elems[k].count;
+		}
+		
+		// take away elements from results
+		for (j = 0; j < rslts.length; j++)
+		for (k = 0; k < rslts[j].elems.length; k++)
+		if (rslts[j].elems[k].numb == elemList[i].numb)
+		{
+			elemList[i].count -= rslts[j].ratio * rslts[j].elems[k].count;
+		}
+	}
+	
+	// write out precursors and weights
+	var reply = '';		// holder for output text
+	reply += 'Precursors:\n';
+	for (i = 0; i < precs.length; i++)
+	{
+		reply += precs[i].name;
+		reply += ', molar weight: ' + Math.round(precs[i].weight * 10000.0)/10000.0 + '\n';
+	}
+	
+	// write out results and weights
+	reply += '\nResults:\n';
+	for (i = 0; i < rslts.length; i++)
+	{
+		reply += rslts[i].name;
+		reply += ', molar weight: ' + Math.round(rslts[i].weight * 10000.0)/10000.0 + '\n';
+	}
+	
+	// set reference for normalization of weights
+	var ref = 1.0;
+	if (normal == 'prec')
+		{ref = precs[0].weight * precs[0].ratio;}
+	else if (normal == 'rslt')
+		{ref = rslts[0].weight * rslts[0].ratio;}
+	reply += '\nPrecursor Ratios:\n';
+	
+	// write out moles and normalized weights for each precursor
+	for (i = 0; i < precs.length; i++)
+	{
+		reply += precs[i].name + ' moles: ';
+		reply += Math.round(precs[i].ratio * 10000.0)/10000.0 + ', grams: ';
+		reply += Math.round(precs[i].ratio * precs[i].weight / ref * 10000.0)/10000.0 + '\n';
+	}
+	
+	// write out moles and normalized weights for each result
+	reply += '\nResult Ratios:\n';
+	for (i = 0; i < rslts.length; i++)
+	{
+		reply += rslts[i].name + ' moles: ';
+		reply += Math.round(rslts[i].ratio * 10000.0)/10000.0 + ', grams: ';
+		reply += Math.round(rslts[i].ratio * rslts[i].weight / ref * 10000.0)/10000.0 + '\n';
+	}
+		
+	// show non-zero element tallies
+	var flag = false;
+	reply += '\nExcess Elements:\n';
+	for (i = 0; i < elemList.length; i++)
+	{
+		if (elemList[i].count)
+		{
+			flag = true;
+			reply += ' ' + elemList[i].name + ', count: '
+			reply += Math.round(elemList[i].count * 10000.0)/10000.0 + '\n';
+		}
+	}
+	if (!flag){reply += ' none';}
+	
+	// send output text to form
+	document.forms[0].outputText.value = reply;
+}
+
+// end of JavaScript code -->
+</script>
+<LINK REL="SHORTCUT ICON" HREF="favicon.ico">
+      <title>JavaScript Stoichiometer, for Solid-State Chemistry</title>
+</head>
+<body bgcolor="white" onLoad="computeOutput();">
+<h2>JavaScript Stoichiometer</h2>
+<img src="engine.jpg" align="right" title="Internal Combustion Engine" alt="Internal Combustion Engine">
+<noscript>
+<p>
+=== This page is best viewed with JavaScript enabled.  It may be turned off in your browser. ===
+</p>
+</noscript>
+<p>
+Online JavaScript calculator to obtain molar ratio and gram ratio of precursors required to obtain a desired result in
+<a href="http://en.wikipedia.org/wiki/Solid-state_chemistry" target="_blank">solid-state chemistry</a>.
+Note that <cite>this is a prototype</cite>, so results should not be relied on without independent verification.
+All source code for the Stoichiometer calculator is contained within this HTML file.  Select "View Source" in your
+browser to see the details.
+</p>
+<h3>Features Implemented:</h3>
+<ul>
+<li>Database of atomic weights,
+<li>Parses input for elements and counts,
+<li>Any number of precursors and results,
+<li>Adds up molecular weights for precursors and results,
+<li>Obtains molar ratio of precursors,
+<li>Calculates gram ratio of precursors,
+<li>Allows normalization of gram weights,
+<li>Finds excess elements in result,
+<li>Integer or fractional atomic counts, entered as decimal numbers.
+</ul>
+<p>
+Inputs may be upper or lower case, or a mix.  Please separate compounds with commas, and elements with
+spaces.  You may type a number immediately after an element to indicate more atoms, as
+in 'H2 O'.  This version <i>cannot</i> parse elements that run together without spaces.
+Also, this version is <i>not</i> aware of <a href="http://en.wikipedia.org/wiki/Electrovalency" target="_blank">electrovalency</a>
+and will <i>not</i> balance the charge in your reaction.
+</p>
+<form action="">
+	<table bgcolor="lightgrey" cellpadding="3">
+	<tr><td align="right">Precursors:</td><td>
+	<input type="text" name="ingredients" value="Sr C O3, Ru O2">
+	<input type="button" value="Clear" onClick="document.forms[0].outputText.value = '';">
+	</td></tr>
+	<tr><td align="right">Results:</td><td>
+	<input type="text" name="result" value="Sr2 Ru1.2 O4, C O2">
+	<input type="button" value="Calculate" onClick="computeOutput();">
+	</td></tr>
+	<tr><td align="right">Normalization:</td>
+	<td><input type="radio" name="normal" value="prec" onClick="computeOutput();" checked>First Precursor
+	<input type="radio" name="normal" value="rslt" onClick="computeOutput();">First Result
+	<input type="radio" name="normal" value="none" onClick="computeOutput();">None</td>
+	</tr>
+	<tr><td colspan="2">
+	<textarea name="outputText" cols="60" rows="24">
+	Output goes here.
+	</textarea>
+	</td></tr>
+	</table>
+</form>
+<h3>Algorithm Used:</h3>
+<p>
+First we parse user input from the Precursors and Results fields to produce composite tree structures,
+each being a list of compounds, which are in turn lists of elements.  We set the molar quantity of the first
+result compound to unity, then obtain the molar quantity for each precursor compound according to the amount
+of each first element present in the first result.  Then we set the molar quantities of the remaining results
+according to how much of each first element is present in the precursors.
+Finally, we tally up all input elements, subtract the output elements, and produce a list of what is excess or missing.
+</p>
+
+<CENTER>
+<IMG SRC="../WebArrowGroup.gif" BORDER=0 USEMAP="#ArrowMap" ALT="ArrowMap">
+</CENTER>
+<HR>
+<BR>
+<MAP NAME="ArrowMap">
+	<AREA SHAPE="POLY" HREF="../BZone/index.html" TARGET="_top" ALT="Prev Page" TITLE="Prev Page"
+	COORDS="4,79,16,91,22,85,46,85,61,70,61,64,40,64,40,58,4,70,4,79">
+	<AREA SHAPE="POLY" HREF="../index.html" TARGET="_top" ALT="Home Page" TITLE="Home Page"
+	COORDS="56,41,62,41,62,61,70,61,85,46,85,22,91,16,79,4,70,4,56,41">
+	<AREA SHAPE="POLY" HREF="../WireTable/index.html" TARGET="_top" ALT="Next Page" TITLE="Next Page"
+	COORDS="80,76,94,63,118,63,124,57,137,70,137,78,100,90,100,85,80,85,80,76">
+</MAP>
+
+<i>Last updated 5/24/2011 by </i><a href="mailto:No_Spam_Please!">
+<img src="../nospam.gif" border="0" align="top" hspace="5" alt="No Spam Please!" title="No Spam Please!"></a>
+
+</body>
+</html>
