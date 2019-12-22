@@ -7,12 +7,14 @@
 // Stoichiometer JavaScript calculator, to obtain molar ratios
 // of precursors required to obtain desired result.
 // M. Williamsen, UW-Milwaukee, 9/30/06
-// Copyright 2006, All Rights Reserved.
+//
+// Modified to allow compounds without spaces between elements.
+// M. Williamsen, Quantum Design, 12/21/19
 //////////////////////////////////////////////////////////////////
 
 // global arrays
-var precs;					// list of precursors
-var rslts;					// list of results
+var precs;						// list of precursors
+var rslts;						// list of results
 var elemList = new Array();		// data base of atomic weights
 
 // constructor for Element object
@@ -190,20 +192,41 @@ function parseInput(s)
 	while (s.indexOf('  ') >= 0) {s = s.replace('  ', ' ');}
 	while (s.indexOf(', ') >= 0) {s = s.replace(', ', ',');}
 	while (s.indexOf(' ,') >= 0) {s = s.replace(' ,', ',');}
-	while (s.substring(0,1) == ' ') {s = s.replace(' ','');}
-	while (s.substring(s.length-1, s.length) == ' ') {s = s.substring(0, s.length-1);}
+	while (s.indexOf(' ')  >= 0) {s = s.replace(' ', '');}
+	s = s.trim()
 	
 	// split into compounds
 	var t = s.split(',');	// array of compound strings
 	
-	// split each compound into elements
+	// iterate over compounds, parse into array of element strings
 	var u = new Array();
 	for (i = 0; i < t.length; i++)
 	{
-		u[i] = t[i].split(' ');
+		// get copy of compound string
+		var cStr = t[i];
+		u[i] = new Array();
+
+		// iterate over compound string characters
+		var a = 0;
+		var b = 0;
+		for (k = 1, j = 0; k <= cStr.length; k++)
+		{
+			// find first and last character of each element
+			var c = cStr.charAt(k);			
+			if (c == c.toUpperCase() && c != c.toLowerCase())
+			{
+				b = k;
+				u[i][j++] = cStr.substring(a, b);
+				a = b;
+			}
+			else if (k == cStr.length)
+			{
+				u[i][j++] = cStr.substring(a, k);
+			}
+		}
 	}
 	
-	// process each compound parsed
+	// process each compound
 	var r = new Array();	// tree structure to return
 	for (i = 0; i < u.length; i++)
 	{
@@ -253,7 +276,7 @@ function parseInput(s)
 		for (j = 0; j < r[i].elems.length; j++)
 		{
 			r[i].weight += r[i].elems[j].weight * r[i].elems[j].count;
-			r[i].name   += ' ' + r[i].elems[j].name;
+			r[i].name   += r[i].elems[j].name;
 			if (r[i].elems[j].count != 1)
 			{
 				r[i].name += r[i].elems[j].count;
@@ -412,6 +435,14 @@ function computeOutput()
 	document.forms[0].outputText.value = reply;
 }
 
+// clear all fields in form
+function clearFields()
+{
+	document.forms[0].outputText.value = '';
+	document.forms[0].ingredients.value = '';
+	document.forms[0].result.value = '';
+}
+
 // end of JavaScript code -->
 </script>
 <LINK REL="SHORTCUT ICON" HREF="favicon.ico">
@@ -428,7 +459,6 @@ function computeOutput()
 <p>
 Online JavaScript calculator to obtain molar ratio and gram ratio of precursors required to obtain a desired result in
 <a href="http://en.wikipedia.org/wiki/Solid-state_chemistry" target="_blank">solid-state chemistry</a>.
-Note that <cite>this is a prototype</cite>, so results should not be relied on without independent verification.
 All source code for the Stoichiometer calculator is contained within this HTML file.  Select "View Source" in your
 browser to see the details.
 </p>
@@ -436,7 +466,8 @@ browser to see the details.
 <ul>
 <li>Database of atomic weights,
 <li>Parses input for elements and counts,
-<li>Any number of precursors and results,
+<li>Any number of precursors,
+<li>Any number of results,
 <li>Adds up molecular weights for precursors and results,
 <li>Obtains molar ratio of precursors,
 <li>Calculates gram ratio of precursors,
@@ -445,20 +476,20 @@ browser to see the details.
 <li>Integer or fractional atomic counts, entered as decimal numbers.
 </ul>
 <p>
-Inputs may be upper or lower case, or a mix.  Please separate compounds with commas, and elements with
-spaces.  You may type a number immediately after an element to indicate more atoms, as
-in 'H2 O'.  This version <i>cannot</i> parse elements that run together without spaces.
-Also, this version is <i>not</i> aware of <a href="http://en.wikipedia.org/wiki/Electrovalency" target="_blank">electrovalency</a>
+Inputs must give elements as either one upper case letter, or two letters with the first upper case and the second lower case.  Please separate compounds with commas ','.
+You may type a number immediately after an element to indicate more atoms, as in 'H2O'.
+Fractional atoms are given as decimal numbers.
+This version is <i>not</i> aware of <a href="http://en.wikipedia.org/wiki/Electrovalency" target="_blank">electrovalency</a>
 and will <i>not</i> balance the charge in your reaction.
 </p>
 <form action="">
 	<table bgcolor="lightgrey" cellpadding="3">
 	<tr><td align="right">Precursors:</td><td>
-	<input type="text" name="ingredients" value="Sr C O3, Ru O2">
-	<input type="button" value="Clear" onClick="document.forms[0].outputText.value = '';">
+	<input type="text" name="ingredients" value="SrCO3, RuO2">
+	<input type="button" value="Clear" onClick="clearFields();">
 	</td></tr>
 	<tr><td align="right">Results:</td><td>
-	<input type="text" name="result" value="Sr2 Ru1.2 O4, C O2">
+	<input type="text" name="result" value="Sr2Ru1.2O4, CO2">
 	<input type="button" value="Calculate" onClick="computeOutput();">
 	</td></tr>
 	<tr><td align="right">Normalization:</td>
@@ -497,7 +528,7 @@ Finally, we tally up all input elements, subtract the output elements, and produ
 	COORDS="80,76,94,63,118,63,124,57,137,70,137,78,100,90,100,85,80,85,80,76">
 </MAP>
 
-<i>Last updated 5/24/2011 by </i><a href="mailto:No_Spam_Please!">
+<i>Last updated 12/21/2019 by </i><a href="mailto:No_Spam_Please!">
 <img src="../nospam.gif" border="0" align="top" hspace="5" alt="No Spam Please!" title="No Spam Please!"></a>
 
 </body>
