@@ -36,22 +36,23 @@ function Compound()
 	this.weight = 0;			// molecular weight
 }
 
-// linear search, returns new element object
-// given a short name, not case sensitive
+// case-sensitive linear search,
+// returns new element object given a short name
 function elemSearch(name)
 {
 	// scan element list in order for a match
 	for (var i = 0; i < elemList.length; i++)
 	{
 		var e = elemList[i];
-		if (name.toUpperCase() == e.name.toUpperCase())
+		if (name == e.name)
 		{
 			return new Element(e.numb, e.name, e.weight, 1);
 		}
 	}
-	
+
 	// reaches here if short name not found
 	alert('Couldn\'t parse: ' + name);
+    document.forms[0].outputText.value = ' ';
 	return new Element(0, '??', 0, 1);
 }
 
@@ -180,26 +181,41 @@ function parseInput(s)
 	var i = 0;	// index over compounds
 	var j = 0;	// index over elements
 	var k = 0;	// index over characters
-	
+
 	// check for empty string
 	if (!s.length)
 	{
 		alert('Parsing empty string!');
+        document.forms[0].outputText.value = ' ';
 		return new Array();
 	}
-	
-	// remove redundant spaces from input
+
+	// remove redundant spaces and commas from input
 	while (s.indexOf(' ')  >= 0) {s = s.replace(' ', '');}
-	
+    while (s.indexOf(';')  >= 0) {s = s.replace(';', ',');}
+    while (s.indexOf(',,')  >= 0) {s = s.replace(',,', ',');}
+
 	// split into compounds
 	var t = s.trim().split(',');	// array of compound strings
-	
+    if (!t.length)
+    {
+        alert('Couldn\'t parse: ' + s);
+        document.forms[0].outputText.value = ' ';
+        return new Array();
+    }
+
 	// iterate over compounds, parse into array of element strings
 	var u = new Array();
 	for (i = 0; i < t.length; i++)
 	{
 		// get copy of compound string
 		var cStr = t[i];
+        if (!cStr.length)
+        {
+            alert('Empty compound in array.');
+            document.forms[0].outputText.value = ' ';
+            return new Array();
+        }
 		u[i] = new Array();
 
 		// iterate over compound string characters
@@ -221,21 +237,26 @@ function parseInput(s)
 			}
 		}
 	}
-	
+
 	// process each compound
 	var r = new Array();	// tree structure to return
 	for (i = 0; i < u.length; i++)
 	{
 		// instantiate new compound object
 		r[i] = new Compound();
-		
+
 		// process each element parsed
 		for (j = 0; j < u[i].length; j++)
 		{
 			// find last char in each element string
 			var v = u[i][j];
-			if (!v.length){alert('No element found!');}
-			
+			if (!v.length)
+            {
+                alert('No element found!');
+                document.forms[0].outputText.value = ' ';
+                return new Array();
+            }
+
 			// find where number starts in element text
 			var numStart = -1;
 			for (k = 0; k < v.length; k++)
@@ -248,7 +269,7 @@ function parseInput(s)
 					k = v.length;	// exit for loop
 				}
 			}
-			
+
 			// break element text into alpha and numeric parts
 			if (numStart > 0)
 			{
@@ -263,7 +284,7 @@ function parseInput(s)
 			}
 		}
 	}
-	
+
 	// set the weight and name for each compound
 	for (i = 0; i < r.length; i++)
 	{
@@ -279,7 +300,6 @@ function parseInput(s)
 			}
 		}
 	}
-
 	return r;
 }
 
@@ -291,14 +311,14 @@ function computeOutput()
 	var i = 0;
 	var j = 0;
 	var k = 0;
-	
+
 	// check if data base has been populated
 	if (!elemList.length)
 	{
 		// populate data base when needed
 		initElemList();
 	}
-	
+
 	// check user inputs
 	var normal = 'none';
 	if (document.forms[0].normal[0].checked)
@@ -307,7 +327,7 @@ function computeOutput()
 		{normal = 'rslt';}
 	precs = parseInput(document.forms[0].ingredients.value);
 	rslts = parseInput(document.forms[0].result.value);
-    
+
 	// calculate moles of each precursor required for desired result
 	for (i = 0; i < precs.length; i++)
 	{
@@ -320,13 +340,13 @@ function computeOutput()
 			precs[i].ratio += rslts[0].elems[j].count / precs[i].elems[0].count;
 		}
 	}
-	
+
 	// find moles of additional results, due to inputs
 	for (i = 1; i < rslts.length; i++)
 	{
 		// clear result ratio
 		rslts[i].ratio = 0;
-				
+
 		// check previous results for overlap
 		for (j = 0; j < i; j++)
 		for (k = 0; k < rslts[j].elems.length; k++)
@@ -335,10 +355,10 @@ function computeOutput()
 			// match found, check quantity
 			rslts[i].ratio -= rslts[j].ratio * rslts[j].elems[k].count / rslts[i].elems[0].count;
 		}
-		
+
 		// now check ith result against all precursors
 		for (j = 0; j < precs.length; j++)
-		
+
 		// scan elements of each precursor, starting with 2nd entry
 		for (k = 1; k < precs[j].elems.length; k++)
 		if (rslts[i].elems[0].numb == precs[j].elems[k].numb)
@@ -347,13 +367,13 @@ function computeOutput()
 			rslts[i].ratio += precs[j].ratio * precs[j].elems[k].count / rslts[i].elems[0].count;
 		}
 	}
-	
+
 	// find excess elements in input
 	for (i = 0; i < elemList.length; i++)
 	{
 		// initialize counters
 		elemList[i].count = 0;
-		
+
 		// add up elements from precursors
 		for (j = 0; j < precs.length; j++)
 		for (k = 0; k < precs[j].elems.length; k++)
@@ -361,7 +381,7 @@ function computeOutput()
 		{
 			elemList[i].count += precs[j].ratio * precs[j].elems[k].count;
 		}
-		
+
 		// take away elements from results
 		for (j = 0; j < rslts.length; j++)
 		for (k = 0; k < rslts[j].elems.length; k++)
@@ -370,7 +390,7 @@ function computeOutput()
 			elemList[i].count -= rslts[j].ratio * rslts[j].elems[k].count;
 		}
 	}
-	
+
 	// write out precursors and weights
 	var reply = '';		// holder for output text
 	reply += 'Precursors:\n';
@@ -379,7 +399,7 @@ function computeOutput()
 		reply += precs[i].name;
 		reply += ', molar weight: ' + Math.round(precs[i].weight * 10000.0)/10000.0 + '\n';
 	}
-	
+
 	// write out results and weights
 	reply += '\nResults:\n';
 	for (i = 0; i < rslts.length; i++)
@@ -387,7 +407,7 @@ function computeOutput()
 		reply += rslts[i].name;
 		reply += ', molar weight: ' + Math.round(rslts[i].weight * 10000.0)/10000.0 + '\n';
 	}
-	
+
 	// set reference for normalization of weights
 	var ref = 1.0;
 	if (normal == 'prec')
@@ -395,7 +415,7 @@ function computeOutput()
 	else if (normal == 'rslt')
 		{ref = rslts[0].weight * rslts[0].ratio;}
 	reply += '\nPrecursor Ratios:\n';
-	
+
 	// write out moles and normalized weights for each precursor
 	for (i = 0; i < precs.length; i++)
 	{
@@ -403,7 +423,7 @@ function computeOutput()
 		reply += Math.round(precs[i].ratio * 10000.0)/10000.0 + ', grams: ';
 		reply += Math.round(precs[i].ratio * precs[i].weight / ref * 10000.0)/10000.0 + '\n';
 	}
-	
+
 	// write out moles and normalized weights for each result
 	reply += '\nResult Ratios:\n';
 	for (i = 0; i < rslts.length; i++)
@@ -412,7 +432,7 @@ function computeOutput()
 		reply += Math.round(rslts[i].ratio * 10000.0)/10000.0 + ', grams: ';
 		reply += Math.round(rslts[i].ratio * rslts[i].weight / ref * 10000.0)/10000.0 + '\n';
 	}
-		
+
 	// show non-zero element tallies
 	var flag = false;
 	reply += '\nExcess Elements:\n';
@@ -426,7 +446,7 @@ function computeOutput()
 		}
 	}
 	if (!flag){reply += ' none';}
-	
+
 	// send output text to form
 	document.forms[0].outputText.value = reply;
 }
@@ -434,9 +454,9 @@ function computeOutput()
 // clear all fields in form
 function clearFields()
 {
-	document.forms[0].outputText.value = '';
-	document.forms[0].ingredients.value = '';
-	document.forms[0].result.value = '';
+	document.forms[0].outputText.value = ' ';
+	document.forms[0].ingredients.value = ' ';
+	document.forms[0].result.value = ' ';
 }
 
 // end of JavaScript code -->
@@ -472,9 +492,9 @@ browser to see the details.
 <li>Integer or fractional atomic counts, entered as decimal numbers.</li>
 </ul>
 <p>
-Precursors and results may be typed as either one upper case letter,
-or two letters with the first upper case and the second lower case for each element.
-Please separate compounds with commas, spaces are ignored.
+Precursor and result elements may be typed as either one upper case letter,
+or two letters with the first upper case and the second lower case.
+Please separate precursors and results with commas, spaces are ignored.
 You may type a number immediately after an element to indicate more atoms, as in 'H2O'.
 Fractional atoms are typed as decimal numbers.
 This version is <i>not</i> aware of
@@ -514,21 +534,21 @@ Finally, we tally up all input elements, subtract the output elements, and produ
 </p>
 
 <center>
-<img src="../WebArrowGroup.gif" usemap="#ArrowMap" alt="ArrowMap" border="0">
+<img src="../WebArrowGroup.gif" border=0 usemap="#ArrowMap" ALT="ArrowMap">
 </center>
 <hr>
 <br>
 <map name="ArrowMap">
-																							  
-	<area shape="POLY" href="http://williamsonic.com/BZone/index.html" target="_top" alt="Prev Page" title="Prev Page" coords="4,79,16,91,22,85,46,85,61,70,61,64,40,64,40,58,4,70,4,79">
-																													 
-	<area shape="POLY" href="http://williamsonic.com/index.html" target="_top" alt="Home Page" title="Home Page" coords="56,41,62,41,62,61,70,61,85,46,85,22,91,16,79,4,70,4,56,41">
-																								  
-	<area shape="POLY" href="http://williamsonic.com/WireTable/index.html" target="_top" alt="Next Page" title="Next Page" coords="80,76,94,63,118,63,124,57,137,70,137,78,100,90,100,85,80,85,80,76">
+	<area shape="POLY" href="../BZone/index.html" target="_top" alt="Prev Page" title="Prev Page"
+	coords="4,79,16,91,22,85,46,85,61,70,61,64,40,64,40,58,4,70,4,79">
+	<area shape="POLY" href="../index.html" target="_top" alt="Home Page" title="Home Page"
+	coords="56,41,62,41,62,61,70,61,85,46,85,22,91,16,79,4,70,4,56,41">
+	<area shape="POLY" href="../WireTable/index.html" target="_top" alt="Next Page" title="Next Page"
+	coords="80,76,94,63,118,63,124,57,137,70,137,78,100,90,100,85,80,85,80,76">
 </map>
 
-<i>Last updated 12/22/2019 by </i><a href="mailto:No_Spam_Please!">
-<img src="../nospam.gif" alt="No Spam Please!" title="No Spam Please!" hspace="5" border="0" align="top"></a>
+<i>Last updated 12/24/2019 by </i><a href="mailto:No_Spam_Please!">
+<img src="../nospam.gif" border="0" align="top" hspace="5" alt="No Spam Please!" title="No Spam Please!"></a>
 
 </body>
 </html>
